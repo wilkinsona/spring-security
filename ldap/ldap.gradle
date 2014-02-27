@@ -11,7 +11,7 @@ dependencies {
              "org.apache.directory.server:apacheds-protocol-shared:$apacheDsVersion",
              "org.apache.directory.server:apacheds-protocol-ldap:$apacheDsVersion",
              "org.apache.directory.server:apacheds-server-jndi:$apacheDsVersion",
-             'org.apache.directory.shared:shared-ldap:0.9.15',
+             'org.apache.directory.shared:shared-ldap:0.9.17',
              'ldapsdk:ldapsdk:4.1'
 
     compile ("org.springframework.ldap:spring-ldap-core:$springLdapVersion") {

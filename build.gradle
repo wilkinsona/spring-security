@@ -25,13 +25,14 @@ allprojects {
 
     ext.releaseBuild = version.endsWith('RELEASE')
     ext.snapshotBuild = version.endsWith('SNAPSHOT')
-    ext.springVersion = '4.0.2.RELEASE'
-    ext.springLdapVersion = '2.0.1.RELEASE'
+    ext.springVersion = '4.0.3.DEPENDENCIES'
+    ext.springLdapVersion = '2.0.2.DEPENDENCIES'
 
     group = 'org.springframework.security'
 
     repositories {
        mavenCentral()
+       mavenLocal()
        maven { url "https://repo.spring.io/libs-snapshot" }
        maven { url "https://repo.spring.io/plugins-release" }
        maven { url "http://repo.terracotta.org/maven2/" }
@@ -102,6 +103,7 @@ configure(coreModuleProjects) {
     bundlor.doFirst {
         def templateText = file("template.mf").text
         bundlor.manifestTemplate = new SimpleTemplateEngine().createTemplate(templateText).make(bundlorProperties).toString()
+        bundlor.failOnWarnings = false
     }
     configurations {
         jacoco //Configuration Group used by Sonar to provide Code Coverage using JaCoCo
