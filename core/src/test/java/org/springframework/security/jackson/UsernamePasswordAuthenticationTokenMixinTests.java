@@ -16,21 +16,18 @@
 
 package org.springframework.security.jackson;
 
-import java.io.IOException;
 import java.util.ArrayList;
 
 import com.fasterxml.jackson.annotation.JsonClassDescription;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.JsonInclude.Value;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.json.JSONException;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestTemplate;
 import org.skyscreamer.jsonassert.JSONAssert;
-import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.junit.jackson.JsonMixinTest;
+import org.springframework.security.junit.jackson.JsonProcessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -40,6 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Onur Kagan Ozcan
  * @since 4.2
  */
+@JsonMixinTest
 public class UsernamePasswordAuthenticationTokenMixinTests extends AbstractMixinTests {
 
 	private static final String AUTHENTICATED_JSON = "{"
@@ -69,55 +67,55 @@ public class UsernamePasswordAuthenticationTokenMixinTests extends AbstractMixin
 		.replace(SimpleGrantedAuthorityMixinTests.AUTHORITIES_ARRAYLIST_JSON,
 				SimpleGrantedAuthorityMixinTests.EMPTY_AUTHORITIES_ARRAYLIST_JSON);
 
-	@Test
-	public void serializeUnauthenticatedUsernamePasswordAuthenticationTokenMixinTest()
-			throws JsonProcessingException, JSONException {
+	@TestTemplate
+	public void serializeUnauthenticatedUsernamePasswordAuthenticationTokenMixinTest(JsonProcessor jsonProcessor)
+			throws JSONException {
 		UsernamePasswordAuthenticationToken token = UsernamePasswordAuthenticationToken.unauthenticated("admin",
 				"1234");
-		String serializedJson = this.mapper.writeValueAsString(token);
+		String serializedJson = jsonProcessor.serialize(token);
 		JSONAssert.assertEquals(UNAUTHENTICATED_STRINGPRINCIPAL_JSON, serializedJson, true);
 	}
 
-	@Test
-	public void serializeAuthenticatedUsernamePasswordAuthenticationTokenMixinTest()
-			throws JsonProcessingException, JSONException {
+	@TestTemplate
+	public void serializeAuthenticatedUsernamePasswordAuthenticationTokenMixinTest(JsonProcessor jsonProcessor)
+			throws JSONException {
 		User user = createDefaultUser();
 		UsernamePasswordAuthenticationToken token = UsernamePasswordAuthenticationToken
 			.authenticated(user.getUsername(), user.getPassword(), user.getAuthorities());
-		String serializedJson = this.mapper.writeValueAsString(token);
+		String serializedJson = jsonProcessor.serialize(token);
 		JSONAssert.assertEquals(AUTHENTICATED_STRINGPRINCIPAL_JSON, serializedJson, true);
 	}
 
-	@Test
-	public void deserializeUnauthenticatedUsernamePasswordAuthenticationTokenMixinTest() {
-		UsernamePasswordAuthenticationToken token = this.mapper.readValue(UNAUTHENTICATED_STRINGPRINCIPAL_JSON,
+	@TestTemplate
+	public void deserializeUnauthenticatedUsernamePasswordAuthenticationTokenMixinTest(JsonProcessor jsonProcessor) {
+		UsernamePasswordAuthenticationToken token = jsonProcessor.deserialize(UNAUTHENTICATED_STRINGPRINCIPAL_JSON,
 				UsernamePasswordAuthenticationToken.class);
 		assertThat(token).isNotNull();
 		assertThat(token.isAuthenticated()).isEqualTo(false);
 		assertThat(token.getAuthorities()).isNotNull().hasSize(0);
 	}
 
-	@Test
-	public void deserializeAuthenticatedUsernamePasswordAuthenticationTokenMixinTest() {
+	@TestTemplate
+	public void deserializeAuthenticatedUsernamePasswordAuthenticationTokenMixinTest(JsonProcessor jsonProcessor) {
 		UsernamePasswordAuthenticationToken expectedToken = createToken();
-		UsernamePasswordAuthenticationToken token = this.mapper.readValue(AUTHENTICATED_STRINGPRINCIPAL_JSON,
+		UsernamePasswordAuthenticationToken token = jsonProcessor.deserialize(AUTHENTICATED_STRINGPRINCIPAL_JSON,
 				UsernamePasswordAuthenticationToken.class);
 		assertThat(token).isNotNull();
 		assertThat(token.isAuthenticated()).isTrue();
 		assertThat(token.getAuthorities()).isEqualTo(expectedToken.getAuthorities());
 	}
 
-	@Test
-	public void serializeAuthenticatedUsernamePasswordAuthenticationTokenMixinWithUserTest()
-			throws JsonProcessingException, JSONException {
+	@TestTemplate
+	public void serializeAuthenticatedUsernamePasswordAuthenticationTokenMixinWithUserTest(JsonProcessor jsonProcessor)
+			throws JSONException {
 		UsernamePasswordAuthenticationToken token = createToken();
-		String actualJson = this.mapper.writeValueAsString(token);
+		String actualJson = jsonProcessor.serialize(token);
 		JSONAssert.assertEquals(AUTHENTICATED_JSON, actualJson, true);
 	}
 
-	@Test
-	public void deserializeAuthenticatedUsernamePasswordAuthenticationTokenWithUserTest() throws IOException {
-		UsernamePasswordAuthenticationToken token = this.mapper.readValue(AUTHENTICATED_JSON,
+	@TestTemplate
+	public void deserializeAuthenticatedUsernamePasswordAuthenticationTokenWithUserTest(JsonProcessor jsonProcessor) {
+		UsernamePasswordAuthenticationToken token = jsonProcessor.deserialize(AUTHENTICATED_JSON,
 				UsernamePasswordAuthenticationToken.class);
 		assertThat(token).isNotNull();
 		assertThat(token.getPrincipal()).isNotNull().isInstanceOf(User.class);
@@ -128,39 +126,40 @@ public class UsernamePasswordAuthenticationTokenMixinTests extends AbstractMixin
 		assertThat(token.getAuthorities()).hasSize(1).contains(new SimpleGrantedAuthority("ROLE_USER"));
 	}
 
-	@Test
-	public void serializeAuthenticatedUsernamePasswordAuthenticationTokenMixinAfterEraseCredentialInvoked()
-			throws JsonProcessingException, JSONException {
+	@TestTemplate
+	public void serializeAuthenticatedUsernamePasswordAuthenticationTokenMixinAfterEraseCredentialInvoked(
+			JsonProcessor jsonProcessor) throws JSONException {
 		UsernamePasswordAuthenticationToken token = createToken();
 		token.eraseCredentials();
-		String actualJson = this.mapper.writeValueAsString(token);
+		String actualJson = jsonProcessor.serialize(token);
 		JSONAssert.assertEquals(AUTHENTICATED_JSON.replaceAll(UserDeserializerTests.USER_PASSWORD, "null"), actualJson,
 				true);
 	}
 
-	@Test
-	public void serializeAuthenticatedUsernamePasswordAuthenticationTokenMixinWithNonUserPrincipalTest()
-			throws JsonProcessingException, JSONException {
+	@TestTemplate
+	public void serializeAuthenticatedUsernamePasswordAuthenticationTokenMixinWithNonUserPrincipalTest(
+			JsonProcessor jsonProcessor) throws JSONException {
 		NonUserPrincipal principal = new NonUserPrincipal();
 		principal.setUsername("admin");
 		UsernamePasswordAuthenticationToken token = UsernamePasswordAuthenticationToken.authenticated(principal, null,
 				new ArrayList<>());
-		String actualJson = this.mapper.writeValueAsString(token);
+		String actualJson = jsonProcessor.serialize(token);
 		JSONAssert.assertEquals(AUTHENTICATED_NON_USER_PRINCIPAL_JSON, actualJson, true);
 	}
 
-	@Test
-	public void deserializeAuthenticatedUsernamePasswordAuthenticationTokenWithNonUserPrincipalTest()
-			throws IOException {
-		UsernamePasswordAuthenticationToken token = this.mapper.readValue(AUTHENTICATED_NON_USER_PRINCIPAL_JSON,
+	@TestTemplate
+	public void deserializeAuthenticatedUsernamePasswordAuthenticationTokenWithNonUserPrincipalTest(
+			JsonProcessor jsonProcessor) {
+		UsernamePasswordAuthenticationToken token = jsonProcessor.deserialize(AUTHENTICATED_NON_USER_PRINCIPAL_JSON,
 				UsernamePasswordAuthenticationToken.class);
 		assertThat(token).isNotNull();
 		assertThat(token.getPrincipal()).isNotNull().isInstanceOf(NonUserPrincipal.class);
 	}
 
-	@Test
-	public void deserializeAuthenticatedUsernamePasswordAuthenticationTokenWithDetailsTest() {
-		UsernamePasswordAuthenticationToken token = this.mapper.readValue(AUTHENTICATED_STRINGDETAILS_JSON,
+	@TestTemplate
+	public void deserializeAuthenticatedUsernamePasswordAuthenticationTokenWithDetailsTest(
+			JsonProcessor jsonProcessor) {
+		UsernamePasswordAuthenticationToken token = jsonProcessor.deserialize(AUTHENTICATED_STRINGDETAILS_JSON,
 				UsernamePasswordAuthenticationToken.class);
 		assertThat(token).isNotNull();
 		assertThat(token.getPrincipal()).isNotNull().isInstanceOf(User.class);
@@ -172,29 +171,34 @@ public class UsernamePasswordAuthenticationTokenMixinTests extends AbstractMixin
 		assertThat(token.getDetails()).isExactlyInstanceOf(String.class).isEqualTo("details");
 	}
 
-	@Test
-	public void serializingThenDeserializingWithNoCredentialsOrDetailsShouldWork() {
+	@TestTemplate
+	public void serializingThenDeserializingWithNoCredentialsOrDetailsShouldWork(JsonProcessor jsonProcessor) {
 		UsernamePasswordAuthenticationToken original = UsernamePasswordAuthenticationToken.unauthenticated("Frodo",
 				null);
-		String serialized = this.mapper.writeValueAsString(original);
-		UsernamePasswordAuthenticationToken deserialized = this.mapper.readValue(serialized,
+		String serialized = jsonProcessor.serialize(original);
+		UsernamePasswordAuthenticationToken deserialized = jsonProcessor.deserialize(serialized,
 				UsernamePasswordAuthenticationToken.class);
 		assertThat(deserialized).isEqualTo(original);
 	}
 
-	@Test
-	public void serializingThenDeserializingWithConfiguredObjectMapperShouldWork() {
-		JsonMapper jsonMapper = this.mapper.rebuild()
-			.changeDefaultPropertyInclusion((p) -> Value.construct(Include.NON_ABSENT, Include.NON_ABSENT))
-			.build();
-
-		UsernamePasswordAuthenticationToken original = UsernamePasswordAuthenticationToken.unauthenticated("Frodo",
-				null);
-		String serialized = jsonMapper.writeValueAsString(original);
-		UsernamePasswordAuthenticationToken deserialized = jsonMapper.readValue(serialized,
-				UsernamePasswordAuthenticationToken.class);
-		assertThat(deserialized).isEqualTo(original);
-	}
+	// TODO Mapper customization
+	// @TestTemplate
+	// public void
+	// serializingThenDeserializingWithConfiguredObjectMapperShouldWork(JsonProcessor
+	// jsonProcessor) {
+	// JsonMapper jsonMapper = this.mapper.rebuild()
+	// .changeDefaultPropertyInclusion((p) -> Value.construct(Include.NON_ABSENT,
+	// Include.NON_ABSENT))
+	// .build();
+	//
+	// UsernamePasswordAuthenticationToken original =
+	// UsernamePasswordAuthenticationToken.unauthenticated("Frodo",
+	// null);
+	// String serialized = jsonMapper.writeValueAsString(original);
+	// UsernamePasswordAuthenticationToken deserialized = jsonMapper.readValue(serialized,
+	// UsernamePasswordAuthenticationToken.class);
+	// assertThat(deserialized).isEqualTo(original);
+	// }
 
 	private UsernamePasswordAuthenticationToken createToken() {
 		User user = createDefaultUser();

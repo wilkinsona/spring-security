@@ -16,19 +16,19 @@
 
 package org.springframework.security.jackson;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.json.JSONException;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestTemplate;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextImpl;
+import org.springframework.security.junit.jackson.JsonMixinTest;
+import org.springframework.security.junit.jackson.JsonProcessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Jitendra Singh
  * @since 4.2
  */
+@JsonMixinTest
 public class SecurityContextMixinTests extends AbstractMixinTests {
 
 	// @formatter:off
@@ -44,18 +45,20 @@ public class SecurityContextMixinTests extends AbstractMixinTests {
 		+ "\"authentication\": " + UsernamePasswordAuthenticationTokenMixinTests.AUTHENTICATED_STRINGPRINCIPAL_JSON
 	+ "}";
 	// @formatter:on
-	@Test
-	public void securityContextSerializeTest() throws JsonProcessingException, JSONException {
+
+	@TestTemplate
+	public void securityContextSerializeTest(JsonProcessor jsonProcessor) throws JSONException {
 		SecurityContext context = new SecurityContextImpl();
 		context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated("admin", "1234",
 				Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"))));
-		String actualJson = this.mapper.writeValueAsString(context);
+		String actualJson = jsonProcessor.serialize(context);
 		JSONAssert.assertEquals(SECURITY_CONTEXT_JSON, actualJson, true);
 	}
 
-	@Test
-	public void securityContextDeserializeTest() throws IOException {
-		SecurityContext context = this.mapper.readValue(SECURITY_CONTEXT_JSON, SecurityContextImpl.class);
+	@TestTemplate
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public void securityContextDeserializeTest(JsonProcessor jsonProcessor) {
+		SecurityContext context = jsonProcessor.deserialize(SECURITY_CONTEXT_JSON, SecurityContextImpl.class);
 		assertThat(context).isNotNull();
 		assertThat(context.getAuthentication()).isNotNull().isInstanceOf(UsernamePasswordAuthenticationToken.class);
 		assertThat(context.getAuthentication().getPrincipal()).isEqualTo("admin");

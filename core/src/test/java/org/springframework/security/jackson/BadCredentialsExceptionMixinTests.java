@@ -16,14 +16,13 @@
 
 package org.springframework.security.jackson;
 
-import java.io.IOException;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.json.JSONException;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestTemplate;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.junit.jackson.JsonMixinTest;
+import org.springframework.security.junit.jackson.JsonProcessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Yannick Lombardi
  * @since 5.0
  */
+@JsonMixinTest
 public class BadCredentialsExceptionMixinTests extends AbstractMixinTests {
 
 	// @formatter:off
@@ -41,16 +41,17 @@ public class BadCredentialsExceptionMixinTests extends AbstractMixinTests {
 		+ "\"suppressed\": [\"[Ljava.lang.Throwable;\",[]]"
 		+ "}";
 	// @formatter:on
-	@Test
-	public void serializeBadCredentialsExceptionMixinTest() throws JsonProcessingException, JSONException {
+
+	@TestTemplate
+	public void serializeBadCredentialsExceptionMixinTest(JsonProcessor jsonProcessor) throws JSONException {
 		BadCredentialsException exception = new BadCredentialsException("message");
-		String serializedJson = this.mapper.writeValueAsString(exception);
+		String serializedJson = jsonProcessor.serialize(exception);
 		JSONAssert.assertEquals(EXCEPTION_JSON, serializedJson, true);
 	}
 
-	@Test
-	public void deserializeBadCredentialsExceptionMixinTest() throws IOException {
-		BadCredentialsException exception = this.mapper.readValue(EXCEPTION_JSON, BadCredentialsException.class);
+	@TestTemplate
+	public void deserializeBadCredentialsExceptionMixinTest(JsonProcessor jsonProcessor) {
+		BadCredentialsException exception = jsonProcessor.deserialize(EXCEPTION_JSON, BadCredentialsException.class);
 		assertThat(exception).isNotNull();
 		assertThat(exception.getCause()).isNull();
 		assertThat(exception.getMessage()).isEqualTo("message");

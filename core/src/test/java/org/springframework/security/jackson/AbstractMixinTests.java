@@ -16,9 +16,6 @@
 
 package org.springframework.security.jackson;
 
-import org.junit.jupiter.api.BeforeEach;
-import tools.jackson.databind.json.JsonMapper;
-
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.User;
 
@@ -27,15 +24,6 @@ import org.springframework.security.core.userdetails.User;
  * @since 4.2
  */
 public abstract class AbstractMixinTests {
-
-	protected JsonMapper mapper;
-
-	@BeforeEach
-	public void setup() {
-		ClassLoader loader = getClass().getClassLoader();
-		this.mapper = JsonMapper.builder().addModules(SecurityJacksonModules.getModules(loader)).build();
-
-	}
 
 	User createDefaultUser() {
 		return createUser("admin", "1234", "ROLE_USER");

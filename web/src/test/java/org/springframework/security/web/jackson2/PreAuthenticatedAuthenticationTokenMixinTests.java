@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.jackson2.SimpleGrantedAuthorityMixinTests;
+import org.springframework.security.jackson.SimpleGrantedAuthorityMixinTests;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 
 import static org.assertj.core.api.Assertions.assertThat;

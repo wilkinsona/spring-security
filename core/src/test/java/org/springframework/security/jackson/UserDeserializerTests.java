@@ -16,21 +16,18 @@
 
 package org.springframework.security.jackson;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.regex.Pattern;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.json.JSONException;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestTemplate;
 import org.skyscreamer.jsonassert.JSONAssert;
-import tools.jackson.databind.exc.MismatchedInputException;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.node.ObjectNode;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.junit.jackson.JsonMixinTest;
+import org.springframework.security.junit.jackson.JsonProcessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -39,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
  * @author Jitendra Singh
  * @since 4.2
  */
+@JsonMixinTest
 public class UserDeserializerTests extends AbstractMixinTests {
 
 	public static final String USER_PASSWORD = "\"1234\"";
@@ -55,32 +53,32 @@ public class UserDeserializerTests extends AbstractMixinTests {
 		+ "\"authorities\": " + SimpleGrantedAuthorityMixinTests.AUTHORITIES_SET_JSON
 	+ "}";
 	// @formatter:on
-	@Test
-	public void serializeUserTest() throws JsonProcessingException, JSONException {
+	@TestTemplate
+	public void serializeUserTest(JsonProcessor jsonProcessor) throws JSONException {
 		User user = createDefaultUser();
-		String userJson = this.mapper.writeValueAsString(user);
+		String userJson = jsonProcessor.serialize(user);
 		JSONAssert.assertEquals(userWithPasswordJson(user.getPassword()), userJson, true);
 	}
 
-	@Test
-	public void serializeUserWithoutAuthority() throws JsonProcessingException, JSONException {
+	@TestTemplate
+	public void serializeUserWithoutAuthority(JsonProcessor jsonProcessor) throws JSONException {
 		User user = new User("admin", "1234", Collections.<GrantedAuthority>emptyList());
-		String userJson = this.mapper.writeValueAsString(user);
+		String userJson = jsonProcessor.serialize(user);
 		JSONAssert.assertEquals(userWithNoAuthoritiesJson(), userJson, true);
 	}
 
-	@Test
-	public void deserializeUserWithNullPasswordEmptyAuthorityTest() throws IOException {
+	@TestTemplate
+	public void deserializeUserWithNullPasswordEmptyAuthorityTest(JsonProcessor jsonProcessor) {
 		String userJsonWithoutPasswordString = USER_JSON.replace(SimpleGrantedAuthorityMixinTests.AUTHORITIES_SET_JSON,
 				"[]");
-		assertThatExceptionOfType(MismatchedInputException.class)
-			.isThrownBy(() -> this.mapper.readValue(userJsonWithoutPasswordString, User.class));
+		assertThatExceptionOfType(jsonProcessor.deserializationFailure())
+			.isThrownBy(() -> jsonProcessor.deserialize(userJsonWithoutPasswordString, User.class));
 	}
 
-	@Test
-	public void deserializeUserWithNullPasswordNoAuthorityTest() throws Exception {
-		String userJsonWithoutPasswordString = removeNode(userWithNoAuthoritiesJson(), this.mapper, "password");
-		User user = this.mapper.readValue(userJsonWithoutPasswordString, User.class);
+	@TestTemplate
+	public void deserializeUserWithNullPasswordNoAuthorityTest(JsonProcessor jsonProcessor) {
+		String userJsonWithoutPasswordString = jsonProcessor.removeFromJson(userWithNoAuthoritiesJson(), "password");
+		User user = jsonProcessor.deserialize(userJsonWithoutPasswordString, User.class);
 		assertThat(user).isNotNull();
 		assertThat(user.getUsername()).isEqualTo("admin");
 		assertThat(user.getPassword()).isNull();
@@ -88,29 +86,21 @@ public class UserDeserializerTests extends AbstractMixinTests {
 		assertThat(user.isEnabled()).isEqualTo(true);
 	}
 
-	@Test
-	public void deserializeUserWithNoClassIdInAuthoritiesTest() throws Exception {
+	@TestTemplate
+	public void deserializeUserWithNoClassIdInAuthoritiesTest(JsonProcessor jsonProcessor) {
 		String userJson = USER_JSON.replace(SimpleGrantedAuthorityMixinTests.AUTHORITIES_SET_JSON,
 				"[{\"authority\": \"ROLE_USER\"}]");
-		assertThatExceptionOfType(MismatchedInputException.class)
-			.isThrownBy(() -> this.mapper.readValue(userJson, User.class));
+		assertThatExceptionOfType(jsonProcessor.deserializationFailure())
+			.isThrownBy(() -> jsonProcessor.deserialize(userJson, User.class));
 	}
 
-	@Test
-	public void deserializeUserWithClassIdInAuthoritiesTest() {
-		User user = this.mapper.readValue(userJson(), User.class);
+	@TestTemplate
+	public void deserializeUserWithClassIdInAuthoritiesTest(JsonProcessor jsonProcessor) {
+		User user = jsonProcessor.deserialize(userJson(), User.class);
 		assertThat(user).isNotNull();
 		assertThat(user.getUsername()).isEqualTo("admin");
 		assertThat(user.getPassword()).isEqualTo("1234");
 		assertThat(user.getAuthorities()).hasSize(1).contains(new SimpleGrantedAuthority("ROLE_USER"));
-	}
-
-	private String removeNode(String json, JsonMapper mapper, String toRemove) throws Exception {
-		ObjectNode node = mapper.createParser(json).readValueAsTree();
-		node.remove(toRemove);
-		String result = mapper.writeValueAsString(node);
-		JSONAssert.assertNotEquals(json, result, false);
-		return result;
 	}
 
 	public static String userJson() {

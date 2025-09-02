@@ -19,12 +19,16 @@ package org.springframework.security.jackson;
 import java.util.Collections;
 import java.util.Map;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestTemplate;
 import org.skyscreamer.jsonassert.JSONAssert;
+
+import org.springframework.security.junit.jackson.JsonMixinTest;
+import org.springframework.security.junit.jackson.JsonProcessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class UnmodifiableMapDeserializerTests extends AbstractMixinTests {
+@JsonMixinTest
+class UnmodifiableMapDeserializerTests {
 
 	// @formatter:off
 	private static final String DEFAULT_MAP_JSON = "{"
@@ -33,17 +37,17 @@ class UnmodifiableMapDeserializerTests extends AbstractMixinTests {
 			+ "}";
 	// @formatter:on
 
-	@Test
-	void shouldSerialize() throws Exception {
-		String mapJson = mapper
-			.writeValueAsString(Collections.unmodifiableMap(Collections.singletonMap("Key", "Value")));
+	@TestTemplate
+	void shouldSerialize(JsonProcessor jsonProcessor) throws Exception {
+		String mapJson = jsonProcessor.serialize(Collections.unmodifiableMap(Collections.singletonMap("Key", "Value")));
 
 		JSONAssert.assertEquals(DEFAULT_MAP_JSON, mapJson, true);
 	}
 
-	@Test
-	void shouldDeserialize() throws Exception {
-		Map<String, String> map = mapper.readValue(DEFAULT_MAP_JSON,
+	@TestTemplate
+	@SuppressWarnings("unchecked")
+	void shouldDeserialize(JsonProcessor jsonProcessor) {
+		Map<String, String> map = jsonProcessor.deserialize(DEFAULT_MAP_JSON,
 				Collections.unmodifiableMap(Collections.emptyMap()).getClass());
 
 		assertThat(map).isNotNull()

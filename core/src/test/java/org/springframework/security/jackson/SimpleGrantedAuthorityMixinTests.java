@@ -16,15 +16,13 @@
 
 package org.springframework.security.jackson;
 
-import java.io.IOException;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.json.JSONException;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestTemplate;
 import org.skyscreamer.jsonassert.JSONAssert;
-import tools.jackson.databind.exc.ValueInstantiationException;
 
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.junit.jackson.JsonMixinTest;
+import org.springframework.security.junit.jackson.JsonProcessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -33,7 +31,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
  * @author Jitendra Singh
  * @since 4.2
  */
-public class SimpleGrantedAuthorityMixinTests extends AbstractMixinTests {
+@JsonMixinTest
+public class SimpleGrantedAuthorityMixinTests {
 
 	// @formatter:off
 	public static final String AUTHORITY_JSON = "{\"@class\": \"org.springframework.security.core.authority.SimpleGrantedAuthority\", \"authority\": \"ROLE_USER\"}";
@@ -43,25 +42,26 @@ public class SimpleGrantedAuthorityMixinTests extends AbstractMixinTests {
 	public static final String EMPTY_AUTHORITIES_ARRAYLIST_JSON = "[\"java.util.Collections$EmptyList\", []]";
 	public static final String NO_AUTHORITIES_SET_JSON = "[\"java.util.Collections$UnmodifiableSet\", []]";
 	// @formatter:on
-	@Test
-	public void serializeSimpleGrantedAuthorityTest() throws JsonProcessingException, JSONException {
+
+	@TestTemplate
+	public void serializeSimpleGrantedAuthorityTest(JsonProcessor jsonProcessor) throws JSONException {
 		SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_USER");
-		String serializeJson = this.mapper.writeValueAsString(authority);
+		String serializeJson = jsonProcessor.serialize(authority);
 		JSONAssert.assertEquals(AUTHORITY_JSON, serializeJson, true);
 	}
 
-	@Test
-	public void deserializeGrantedAuthorityTest() throws IOException {
-		SimpleGrantedAuthority authority = this.mapper.readValue(AUTHORITY_JSON, SimpleGrantedAuthority.class);
+	@TestTemplate
+	public void deserializeGrantedAuthorityTest(JsonProcessor jsonProcessor) {
+		SimpleGrantedAuthority authority = jsonProcessor.deserialize(AUTHORITY_JSON, SimpleGrantedAuthority.class);
 		assertThat(authority).isNotNull();
 		assertThat(authority.getAuthority()).isNotNull().isEqualTo("ROLE_USER");
 	}
 
-	@Test
-	public void deserializeGrantedAuthorityWithoutRoleTest() throws IOException {
+	@TestTemplate
+	public void deserializeGrantedAuthorityWithoutRoleTest(JsonProcessor jsonProcessor) {
 		String json = "{\"@class\": \"org.springframework.security.core.authority.SimpleGrantedAuthority\"}";
-		assertThatExceptionOfType(ValueInstantiationException.class)
-			.isThrownBy(() -> this.mapper.readValue(json, SimpleGrantedAuthority.class));
+		assertThatExceptionOfType(jsonProcessor.valueInstantiationFailure())
+			.isThrownBy(() -> jsonProcessor.deserialize(json, SimpleGrantedAuthority.class));
 	}
 
 }
