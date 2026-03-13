@@ -43,11 +43,13 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.ui.DefaultResourcesFilter;
+import org.springframework.security.web.webauthn.api.EnableWebAuthn;
 import org.springframework.security.web.webauthn.api.PublicKeyCredentialCreationOptions;
 import org.springframework.security.web.webauthn.api.TestPublicKeyCredentialCreationOptions;
 import org.springframework.security.web.webauthn.authentication.WebAuthnAuthenticationFilter;
 import org.springframework.security.web.webauthn.management.WebAuthnRelyingPartyOperations;
 import org.springframework.security.web.webauthn.registration.HttpSessionPublicKeyCredentialCreationOptionsRepository;
+import org.springframework.security.web.webauthn.settings.WebAuthnSettingsConfigurer;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -79,6 +81,15 @@ public class WebAuthnConfigurerTests {
 	@Test
 	public void webauthnWhenConfiguredConfiguredThenServesJavascript() throws Exception {
 		this.spring.register(DefaultWebauthnConfiguration.class).autowire();
+		this.mvc.perform(get("/login/webauthn.js"))
+			.andExpect(status().isOk())
+			.andExpect(header().string("content-type", "text/javascript;charset=UTF-8"))
+			.andExpect(content().string(containsString("async function authenticate(")));
+	}
+
+	@Test
+	public void webauthnWhenConfiguredContextWideThenServesJavascript() throws Exception {
+		this.spring.register(ContextWideWebAuthnConfiguration.class).autowire();
 		this.mvc.perform(get("/login/webauthn.js"))
 			.andExpect(status().isOk())
 			.andExpect(header().string("content-type", "text/javascript;charset=UTF-8"))
@@ -469,6 +480,35 @@ public class WebAuthnConfigurerTests {
 						.rpName("spring")
 						.disableDefaultRegistrationPage(true)
 					);
+			// @formatter:on
+			return http.build();
+		}
+
+	}
+
+	@EnableWebAuthn
+	@EnableWebSecurity
+	static class ContextWideWebAuthnConfiguration {
+
+		@Bean
+		WebAuthnSettingsConfigurer webAuthnSettingsConfigurer() {
+			return (settings) -> {
+				settings.rpId("spring.io");
+				settings.rpName("spring");
+			};
+		}
+
+		@Bean
+		UserDetailsService userDetailsService() {
+			return new InMemoryUserDetailsManager();
+		}
+
+		@Bean
+		SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+			// @formatter:off
+			http
+				.formLogin(Customizer.withDefaults())
+				.webAuthn(Customizer.withDefaults());
 			// @formatter:on
 			return http.build();
 		}

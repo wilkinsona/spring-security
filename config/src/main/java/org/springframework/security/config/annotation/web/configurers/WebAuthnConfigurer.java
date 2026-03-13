@@ -49,6 +49,7 @@ import org.springframework.security.web.webauthn.registration.DefaultWebAuthnReg
 import org.springframework.security.web.webauthn.registration.PublicKeyCredentialCreationOptionsFilter;
 import org.springframework.security.web.webauthn.registration.PublicKeyCredentialCreationOptionsRepository;
 import org.springframework.security.web.webauthn.registration.WebAuthnRegistrationFilter;
+import org.springframework.security.web.webauthn.settings.WebAuthnSettings;
 import org.springframework.util.Assert;
 
 /**
@@ -167,12 +168,16 @@ public class WebAuthnConfigurer<H extends HttpSecurityBuilder<H>>
 	public void configure(H http) {
 		UserDetailsService userDetailsService = getSharedOrBean(http, UserDetailsService.class)
 			.orElseThrow(() -> new IllegalStateException("Missing UserDetailsService Bean"));
-		PublicKeyCredentialUserEntityRepository userEntities = getSharedOrBean(http,
-				PublicKeyCredentialUserEntityRepository.class)
-			.orElse(userEntityRepository());
-		UserCredentialRepository userCredentials = getSharedOrBean(http, UserCredentialRepository.class)
-			.orElse(userCredentialRepository());
-		WebAuthnRelyingPartyOperations rpOperations = webAuthnRelyingPartyOperations(userEntities, userCredentials);
+		PublicKeyCredentialUserEntityRepository userEntities = getSettingsOrNull()
+			.map(WebAuthnSettings::getUserEntityRepository)
+			.orElseGet(() -> getSharedOrBean(http, PublicKeyCredentialUserEntityRepository.class)
+				.orElse(userEntityRepository()));
+		UserCredentialRepository userCredentials = getSettingsOrNull()
+			.map(WebAuthnSettings::getUserCredentialRepository)
+			.orElseGet(() -> getSharedOrBean(http, UserCredentialRepository.class).orElse(userCredentialRepository()));
+		WebAuthnRelyingPartyOperations rpOperations = getSettingsOrNull()
+			.map(WebAuthnSettings::getRelyingPartyOperations)
+			.orElseGet(() -> webAuthnRelyingPartyOperations(userEntities, userCredentials));
 		PublicKeyCredentialCreationOptionsRepository creationOptionsRepository = creationOptionsRepository();
 		WebAuthnAuthenticationFilter webAuthnAuthnFilter = new WebAuthnAuthenticationFilter();
 		webAuthnAuthnFilter.setAuthenticationManager(
@@ -243,6 +248,10 @@ public class WebAuthnConfigurer<H extends HttpSecurityBuilder<H>>
 		catch (NoSuchBeanDefinitionException ex) {
 			return Optional.empty();
 		}
+	}
+
+	private Optional<WebAuthnSettings> getSettingsOrNull() {
+		return getBeanOrNull(WebAuthnSettings.class);
 	}
 
 	private MapUserCredentialRepository userCredentialRepository() {
